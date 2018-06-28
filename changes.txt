@@ -1,0 +1,21 @@
+Changes log
+===========
+
++ feature added
+- bug fixed
+? known issue
+
+Version 1.1
+-----------
+
++ lists in grammar explorer is sorted (except for undefined items)
++ Added capability to highlight all the lines contains a grammar rule (using 
+  popup menus)
++ Displaying  messages about errors in the grammar during the editing
+- Access violation when exit with big file is loaded.
+
+Version 1.2
+-----------
+
++ Rebuilt with latest (2.6.0 at the moment) version of official GOLD Parser 
+  grammatic. Lets use symbols '-' and '.' in terminals and non-terminals
