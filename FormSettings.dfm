@@ -4,8 +4,8 @@ object fmOptions: TfmOptions
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Settings'
-  ClientHeight = 362
-  ClientWidth = 474
+  ClientHeight = 370
+  ClientWidth = 476
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,6 +13,7 @@ object fmOptions: TfmOptions
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poMainFormCenter
   Scaled = False
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
@@ -20,21 +21,23 @@ object fmOptions: TfmOptions
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
-    Top = 325
-    Width = 474
-    Height = 37
+    Top = 330
+    Width = 476
+    Height = 40
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
+    ExplicitTop = 327
+    ExplicitWidth = 475
     DesignSize = (
-      474
-      37)
+      476
+      40)
     object bbOk: TBitBtn
-      Left = 269
-      Top = 4
+      Left = 267
+      Top = 5
       Width = 100
       Height = 30
-      Anchors = [akTop, akRight, akBottom]
+      Anchors = [akTop, akRight]
       Caption = 'OK'
       Default = True
       ModalResult = 1
@@ -51,13 +54,14 @@ object fmOptions: TfmOptions
         0606000205030402000706060600060606060600020503040200060606060606
         0606060600020502000606060606060606060606060002000606060606060606
         0606060606060006060606060606060606060606060606060606}
+      ExplicitLeft = 266
     end
     object bbCancel: TBitBtn
-      Left = 373
-      Top = 4
+      Left = 371
+      Top = 5
       Width = 100
       Height = 30
-      Anchors = [akTop, akRight, akBottom]
+      Anchors = [akTop, akRight]
       Cancel = True
       Caption = 'Cancel'
       ModalResult = 2
@@ -74,35 +78,44 @@ object fmOptions: TfmOptions
         0400040502030400070606060004050400060004050203040006060606000400
         0606060004050400060606060606000606060606000400060606060606060606
         0606060606000606060606060606060606060606060606060606}
+      ExplicitLeft = 370
     end
   end
   object Panel2: TPanel
     Left = 0
     Top = 0
-    Width = 474
-    Height = 325
+    Width = 476
+    Height = 330
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
+    ExplicitWidth = 474
+    ExplicitHeight = 325
     object pcOptions: TPageControl
       Left = 0
       Top = 0
-      Width = 474
-      Height = 325
-      ActivePage = tsDisplay
+      Width = 476
+      Height = 330
+      ActivePage = tsCommon
       Align = alClient
       TabOrder = 0
+      ExplicitWidth = 474
+      ExplicitHeight = 325
       object tsCommon: TTabSheet
         Caption = 'Common'
+        ExplicitWidth = 466
+        ExplicitHeight = 297
         object Panel3: TPanel
           Left = 0
           Top = 0
-          Width = 466
-          Height = 297
+          Width = 468
+          Height = 302
           Align = alClient
           BevelInner = bvRaised
           BevelOuter = bvLowered
           TabOrder = 0
+          ExplicitWidth = 466
+          ExplicitHeight = 297
           object cbAutoSave: TCheckBox
             Left = 16
             Top = 140
@@ -192,15 +205,19 @@ object fmOptions: TfmOptions
       object tsColor: TTabSheet
         Caption = 'Color'
         ImageIndex = 1
+        ExplicitWidth = 466
+        ExplicitHeight = 297
         object Panel4: TPanel
           Left = 0
           Top = 0
-          Width = 466
-          Height = 297
+          Width = 468
+          Height = 302
           Align = alClient
           BevelInner = bvRaised
           BevelOuter = bvLowered
           TabOrder = 0
+          ExplicitWidth = 466
+          ExplicitHeight = 297
           object Label1: TLabel
             Left = 16
             Top = 8
@@ -379,49 +396,27 @@ object fmOptions: TfmOptions
             Gutter.Font.Name = 'Terminal'
             Gutter.Font.Style = []
             HideSelection = True
-            Lines.Strings = (
-              '{Literal Ch}     = {Printable Full} - ['#39#39']'
-              '{Rule Ch}        = {Printable} - [<>] - ['#39#39']'
-              ''
-              'ParameterName  = '#39'"'#39' {Parameter Ch}+ '#39'"'#39' '
-              'Symbol         = ({Symbol Chars} | '#39#39' {Literal Ch}* '#39#39' )+ '
-              
-                'SetLiteral     = '#39'['#39' ({Set Literal Ch} | '#39#39' {Literal Ch}* '#39#39' )+ ' +
-                #39']'#39
-              'SetName        = '#39'{'#39' {Set Name Ch}+ '#39'}'#39
-              'RuleName       = '#39'<'#39' {Rule Ch}+ '#39'>'#39
-              ''
-              '! This is a line based grammar'
-              '{Whitespace Ch} = {Whitespace} - {CR} - {LF}'
-              ''
-              'Whitespace = {Whitespace Ch}+'
-              'Newline    = {CR}{LF} | {CR} | {LF}'
-              ''
-              'Comment Line  = '#39'!'#39
-              'Comment Start = '#39'!*'#39
-              'Comment End   = '#39'*!'#39
-              ''
-              ''
-              '"Start Symbol" = <Grammar>'
-              ''
-              '!--------------------------------------------------- Basics'
-              
-                '<Grammar>  ::= <nl opt> <Content>     ! The <nl opt> here remove' +
-                's all newlines before the first definition'
-              ''
-              '<Content> ::= <Definition> <Content> '
-              '            | <Definition>'
-              ''
-              '<Definition> ::= <Parameter>'
-              '               | <Set>'
-              '               | <Terminal>'
-              '               | <Rule>'
-              '                '
-              ''
-              '! Optional series of New Line - use below is restricted'
-              '<nl opt> ::= NewLine <nl opt>')
+            Lines.UnicodeStrings = 
+              '{Literal Ch}     = {Printable Full} - ['#39#39']'#13#10'{Rule Ch}        = {' +
+              'Printable} - [<>] - ['#39#39']'#13#10#13#10'ParameterName  = '#39'"'#39' {Parameter Ch}+' +
+              ' '#39'"'#39#13#10'Symbol         = ({Symbol Chars} | '#39#39' {Literal Ch}* '#39#39' )+'#13 +
+              #10'SetLiteral     = '#39'['#39' ({Set Literal Ch} | '#39#39' {Literal Ch}* '#39#39' )+' +
+              ' '#39']'#39#13#10'SetName        = '#39'{'#39' {Set Name Ch}+ '#39'}'#39#13#10'RuleName       = ' +
+              #39'<'#39' {Rule Ch}+ '#39'>'#39#13#10#13#10'! This is a line based grammar'#13#10'{Whitespac' +
+              'e Ch} = {Whitespace} - {CR} - {LF}'#13#10#13#10'Whitespace = {Whitespace C' +
+              'h}+'#13#10'Newline    = {CR}{LF} | {CR} | {LF}'#13#10#13#10'Comment Line  = '#39'!'#39#13 +
+              #10'Comment Start = '#39'!*'#39#13#10'Comment End   = '#39'*!'#39#13#10#13#10#13#10'"Start Symbol" ' +
+              '= <Grammar>'#13#10#13#10'!------------------------------------------------' +
+              '--- Basics'#13#10'<Grammar>  ::= <nl opt> <Content>     ! The <nl opt>' +
+              ' here removes all newlines before the first definition'#13#10#13#10'<Conte' +
+              'nt> ::= <Definition> <Content> '#13#10'            | <Definition>'#13#10#13#10'<' +
+              'Definition> ::= <Parameter>'#13#10'               | <Set>'#13#10'           ' +
+              '    | <Terminal>'#13#10'               | <Rule>'#13#10'                '#13#10#13#10'!' +
+              ' Optional series of New Line - use below is restricted'#13#10'<nl opt>' +
+              ' ::= NewLine <nl opt>'
             Options = [eoAutoIndent, eoDragDropEditing, eoGroupUndo, eoHideShowScrollbars, eoNoCaret, eoScrollPastEol, eoShowScrollHint, eoSmartTabDelete, eoSmartTabs, eoTabsToSpaces, eoTrimTrailingSpaces]
             ReadOnly = True
+            FontSmoothing = fsmNone
             RemovedKeystrokes = <
               item
                 Command = ecContextHelp
@@ -438,15 +433,19 @@ object fmOptions: TfmOptions
       object tsDisplay: TTabSheet
         Caption = 'Display'
         ImageIndex = 2
+        ExplicitWidth = 466
+        ExplicitHeight = 297
         object Panel5: TPanel
           Left = 0
           Top = 0
-          Width = 466
-          Height = 297
+          Width = 468
+          Height = 302
           Align = alClient
           BevelInner = bvRaised
           BevelOuter = bvLowered
           TabOrder = 0
+          ExplicitWidth = 466
+          ExplicitHeight = 297
           object gbGutter: TGroupBox
             Left = 8
             Top = 8
