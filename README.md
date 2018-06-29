@@ -23,8 +23,8 @@ the definition of this element in the text.
 2) Doubleclick left mouse button on the tree of grammar elements moves the 
 editor cursor to this element in the text.
 
-3) You can place up to 10 bookmarks in the text using <Ctrl>+<Shift>+<0..9> 
-keys and quickly return to such bookmark using <Ctrl>+corresponding number 
+3) You can place up to 10 bookmarks in the text using Ctrl+Shift+0..9
+keys and quickly return to such bookmark using Ctrl+corresponding number 
 key
 
 
