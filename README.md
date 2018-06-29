@@ -31,5 +31,5 @@ key
 Building
 ============
 
-Built with CodeGear Delphi 2007
+The project is built with CodeGear Delphi 2007
 Uses SynEdit components from https://github.com/SynEdit/SynEdit
