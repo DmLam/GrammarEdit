@@ -6,7 +6,8 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls,
   Forms, Dialogs, StrUtils, SynUnicode, SynEdit, SynEditTypes, SynEditHighlighter,
   GrammarSyn, ExtCtrls, GrammarParser, StdCtrls, ComCtrls, TypInfo, ImgList, Menus,
-  ActnList, Buttons, ToolWin, IniFiles, SynEditKeyCmds, CheckLst, Grids;
+  ActnList, Buttons, ToolWin, IniFiles, SynEditKeyCmds, CheckLst, Grids,
+  SynEditMiscClasses, SynEditSearch;
 
 type
   TfmMain = class(TForm)
@@ -114,6 +115,7 @@ type
     pnRules: TPanel;
     hcRules: THeaderControl;
     sgRules: TStringGrid;
+    seSearch: TSynEditSearch;
     procedure seMainStatusChange(Sender: TObject;
       Changes: TSynStatusChanges);
     procedure seMainChange(Sender: TObject);
