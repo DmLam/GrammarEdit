@@ -1,7 +1,3 @@
-
-(****************************************************
-   change unitname to filename
-****************************************************)
 unit GrammarParser;
 
 interface
@@ -31,6 +27,7 @@ type
     FGrammar: TGrammar;
     FOnParse: TNotifyEvent;
     FParsed: boolean;
+
     function LoadGrammarFromResource(aGoldParser : TGOLDParser) : Boolean;
     procedure ReplaceReduction (aParser : TGOLDParser);
     procedure DoOnParse;
@@ -38,6 +35,7 @@ type
     function GetError(Index: integer): string;
     function GetErrorLine(Index: integer): integer;
     function GetLastReduction: TReduction;
+
   protected
     procedure OnParseProc;
     procedure Execute; override;
@@ -91,8 +89,14 @@ type
   end;
 
   TGrammarTerminal = class(TGrammarItem)
+  private
+    FPredefined: boolean;
   public
     constructor Create(const AName: string; const AStartPos, AEndPos: TPoint);
+    constructor CreatePredefined(const AName: string);
+
+    property Predefined: boolean
+      read FPredefined;
   end;
 
   TGrammarSet = class(TGrammarItem)
@@ -120,6 +124,7 @@ type
     destructor Destroy; override;
 
     procedure Clear;
+    procedure Init;
     function AddItem(const Item: TGrammarItem): integer;
     procedure DeleteItem(const Index: integer);
     function ItemAt(const XY: TPoint): TGrammarItem;
@@ -135,7 +140,6 @@ type
     function SetByName(const Name: string): TGrammarSet;
 
     procedure Sort;
-    procedure DeleteDefinedItems;
 
     property ItemCount: integer
       read GetItemCount;
@@ -266,6 +270,45 @@ const
   Rule_Symbol_Terminal                   = 49; // <Symbol> ::= Terminal
   Rule_Symbol_Nonterminal                = 50; // <Symbol> ::= Nonterminal
 
+// pre-defined terminals
+const
+  PREDEFINED_TERMINALS: array [1..175] of string =
+    ('HT', 'LF', 'VT', 'FF', 'CR', 'Space', 'NBSP', 'LS', 'PS',
+     'Number', 'Digit', 'Letter', 'AlphaNumeric', 'Printable', 'Letter Extended', 'Printable Extended', 'Whitespace',
+     'All Latin', 'All Letters', 'All Printable', 'All Space', 'All Newline', 'All Whitespace',
+     //
+     'Basic Latin', 'Latin-1 Supplement', 'Latin Extended-A', 'Latin Extended-B', 'IPA Extensions', 'Spacing Modifier Letters',
+     'Combining Diacritical Marks', 'Greek and Coptic', 'Cyrillic', 'Cyrillic Supplement', 'Armenian', 'Hebrew', 'Arabic',
+     'Syriac', 'Arabic Supplement', 'Thaana', 'NKo', 'Samaritan', 'Devanagari', 'Bengali', 'Gurmukhi', 'Gujarati', 'Oriya',
+     'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Sinhala', 'Thai', 'Lao', 'Tibetan', 'Myanmar', 'Georgian', 'Hangul Jamo',
+     'Ethiopic', 'Ethiopic Supplement', 'Cherokee', 'Unified Canadian Aboriginal Syllabics', 'Ogham', 'Runic', 'Tagalog',
+     'Hanunoo', 'Buhid', 'Tagbanwa', 'Khmer', 'Mongolian', 'Unified Canadian Aboriginal Syllabics Extended', 'Limbu',
+     'Tai Le', 'New Tai Lue', 'Khmer Symbols', 'Buginese', 'Tai Tham', 'Balinese', 'Sundanese', 'Lepcha', 'Ol Chiki',
+     'Vedic Extensions', 'Phonetic Extensions', 'Phonetic Extensions Supplement', 'Combining Diacritical Marks Supplement',
+     'Latin Extended Additional', 'Greek Extended', 'General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols',
+     'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms', 'Arrows', 'Mathematical Operators',
+     'Miscellaneous Technical', 'Control Pictures', 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing',
+     'Block Elements', 'Geometric Shapes', 'Miscellaneous Symbols', 'Dingbats', 'Miscellaneous Mathematical Symbols-A',
+     'Supplemental Arrows-A', 'Braille Patterns', 'Supplemental Arrows-B', 'Miscellaneous Mathematical Symbols-B',
+     'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows', 'Glagolitic', 'Latin Extended-C',
+     'Coptic', 'Georgian Supplement', 'Tifinagh', 'Ethiopic Extended', 'Cyrillic Extended-A', 'Supplemental Punctuation',
+     'CJK Radicals Supplement', 'Kangxi Radicals', 'Ideographic Description Characters', 'CJK Symbols and Punctuation',
+     'Hiragana', 'Katakana', 'Bopomofo', 'Hangul Compatibility Jamo', 'Kanbun', 'Bopomofo Extended', 'CJK Strokes',
+     'Katakana Phonetic Extensions', 'Enclosed CJK Letters and Months', 'CJK Compatibility', 'CJK Unified Ideographs Extension A',
+     'Yijing Hexagram Symbols', 'CJK Unified Ideographs', 'Yi Syllables', 'Yi Radicals', 'Lisu', 'Vai', 'Cyrillic Extended-B',
+     'Bamum', 'Modifier Tone Letters', 'Latin Extended-D', 'Syloti Nagri', 'Common Indic Number Forms', 'Phags-pa', 'Saurashtra',
+     'Devanagari Extended', 'Kayah Li', 'Rejang', 'Hangul Jamo Extended-A', 'Javanese', 'Cham', 'Myanmar Extended-A',
+     'Tai Viet', 'Meetei Mayek', 'Hangul Syllables', 'Hangul Jamo Extended-B', 'Private Use Area', 'CJK Compatibility Ideographs',
+     'Alphabetic Presentation Forms', 'Arabic Presentation Forms-A', 'Variation Selectors', 'Vertical Forms', 'Combining Half Marks',
+     'CJK Compatibility Forms', 'Small Form Variants', 'Arabic Presentation Forms-B', 'Halfwidth and Fullwidth Forms',
+     //
+     'All Valid', 'ANSI Mapped', 'ANSI Printable', 'Control Codes', 'Euro Sign', 'Formatting');
+
+const
+  COMMENT_LINE = 'Comment Line';
+  COMMENT_START = 'Comment Start';
+  COMMENT_END = 'Comment End';
+
 function OffsetPoint(const P: TPoint; const X, Y: integer): TPoint;
 begin
   Result.X := P.X+X;
@@ -332,10 +375,13 @@ begin
       FParsed := false;
       FParsedOk := true;
       FGrammar.Clear;
+      FGrammar.Init;
       FErrors.Clear;
-      if Terminated then Break;
+      if Terminated then
+        Break;
       FParser.OpenTextString(FParseString);
-      if Terminated then Break;
+      if Terminated then
+        Break;
       lDone := False;
       RecoverError := 0;
       while not (lDone or FSourceChanged or Terminated) do
@@ -460,8 +506,6 @@ begin
 
     if not Terminated and FSourceChanged then Continue;
 
-//    FGrammar.DeleteDefinedItems;
-
     Grammar.Sort;
 
     if not Terminated and FSourceChanged then Continue;
@@ -499,7 +543,6 @@ var
   lMemStream : TMemoryStream;
   lResource : Pointer;
   lHandle   : Cardinal;
-
 begin
   Result := TRUE;
   try
@@ -679,36 +722,6 @@ begin
   FSets.OwnsObjects := true;
 end;
 
-procedure TGrammar.DeleteDefinedItems;
-
-  procedure DeleteFrom(FList: TObjectList);
-  var
-    i, j: integer;
-  begin
-    for j:=0 to FList.Count-1 do
-      for i:=FItems.Count-1 downto 0 do
-      begin
-        if AnsiCompareText((FList[j] as TGrammarItem).Name, Items[i].Name)=0 then
-          FItems.Delete(i);
-      end;
-  end;
-
-var
-  i: integer;
-
-begin
-  DeleteFrom(FRules);
-  DeleteFrom(FTerminals);
-  DeleteFrom(FSets);
-
-  // Deleting predefined terminals
-  for i:=FTerminals.Count-1 downto 0 do
-    if ((CompareText(Terminals[i].Name, 'Comment Line')=0) or
-        (CompareText(Terminals[i].Name, 'Comment Start')=0) or
-        (CompareText(Terminals[i].Name, 'Comment End')=0)) then
-      FTerminals.Delete(i);
-end;
-
 procedure TGrammar.DeleteItem(const Index: integer);
 begin
   FItems.Delete(Index);
@@ -751,26 +764,6 @@ begin
   Result := FRules.Count;
 end;
 
-{ TGrammarItem }
-
-constructor TGrammarItem.Create(const AKind: TGrammarItemKind;
-  const AName: string; const AStartPos, AEndPos: TPoint);
-begin
-  FKind := AKind;
-  FName := AName;
-  FStartPos := AStartPos;
-  FEndPos := AEndPos;
-end;
-
-{ TGrammarRule }
-
-constructor TGrammarRule.Create(const AName: string; const AStartPos,
-  AEndPos: TPoint);
-begin
-  inherited Create(gikRule, AName, AStartPos, AEndPos);
-
-end;
-
 function TGrammar.GetSet(Index: integer): TGrammarSet;
 begin
   Result := FSets[Index] as TGrammarSet;
@@ -789,6 +782,15 @@ end;
 function TGrammar.GetTerminalCount: integer;
 begin
   Result := FTerminals.Count
+end;
+
+procedure TGrammar.Init;
+var
+  i: integer;
+begin
+  // add predefined terminals
+  for i := Low(PREDEFINED_TERMINALS) to High(PREDEFINED_TERMINALS) do
+    AddTerminal(TGrammarTerminal.CreatePredefined('{' + PREDEFINED_TERMINALS[i] + '}'));
 end;
 
 function TGrammar.ItemAt(const XY: TPoint): TGrammarItem;
@@ -844,14 +846,6 @@ begin
     Result := Rules[i]
   else
     Result := nil;
-end;
-
-{ TGrammarTerminal }
-
-constructor TGrammarTerminal.Create(const AName: string; const AStartPos,
-  AEndPos: TPoint);
-begin
-  inherited Create(gikTerminal, AName, AStartPos, AEndPos);
 end;
 
 function TGrammar.SetAt(const XY: TPoint): TGrammarSet;
@@ -946,10 +940,42 @@ end;
 
 { TGrammarSet }
 
-constructor TGrammarSet.Create(const AName: string; const AStartPos,
-  AEndPos: TPoint);
+constructor TGrammarSet.Create(const AName: string; const AStartPos, AEndPos: TPoint);
 begin
   inherited Create(gikSet, AName, AStartPos, AEndPos);
+end;
+
+{ TGrammarItem }
+
+constructor TGrammarItem.Create(const AKind: TGrammarItemKind;  const AName: string; const AStartPos, AEndPos: TPoint);
+begin
+  FKind := AKind;
+  FName := AName;
+  FStartPos := AStartPos;
+  FEndPos := AEndPos;
+end;
+
+{ TGrammarTerminal }
+
+constructor TGrammarTerminal.Create(const AName: string; const AStartPos, AEndPos: TPoint);
+begin
+  FPredefined := false;
+
+  inherited Create(gikTerminal, AName, AStartPos, AEndPos);
+end;
+
+constructor TGrammarTerminal.CreatePredefined(const AName: string);
+begin
+  Create(AName, Point(1, 1), Point(1, 1));
+
+  FPredefined := true;
+end;
+
+{ TGrammarRule }
+
+constructor TGrammarRule.Create(const AName: string; const AStartPos, AEndPos: TPoint);
+begin
+  inherited Create(gikRule, AName, AStartPos, AEndPos);
 end;
 
 end.

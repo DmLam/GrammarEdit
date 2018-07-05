@@ -283,50 +283,51 @@ var
   i: integer;
   Node: TTreeNode;
   RulesExp, TermsExp, SetsExp, UndefsExp: boolean;
+  Grammar: TGrammar;
 begin
   RulesExp := tnRules.Expanded;
   TermsExp := tnSymbols.Expanded;
   SetsExp := tnSets.Expanded;
   UndefsExp := tnUndefs.Expanded;
   tvItems.Items.BeginUpdate;
+  Grammar := FParser.Grammar;
   try
     tnRules.DeleteChildren;
     tnSymbols.DeleteChildren;
     tnSets.DeleteChildren;
     tnUndefs.DeleteChildren;
-    with FParser.Grammar, tvItems.Items do
     begin
-      for i:=0 to RuleCount-1 do
+      for i := 0 to Grammar.RuleCount - 1 do
       begin
-        Node := AddChild(tnRules, Rules[i].Name);
+        Node := tvItems.Items.AddChild(tnRules, FParser.Grammar.Rules[i].Name);
         Node.ImageIndex := 3;
         Node.SelectedIndex := 4;
-        Node.Data := Rules[i];
+        Node.Data := Grammar.Rules[i];
       end;
       tnRules.Expanded := RulesExp;
-      for i:=0 to TerminalCount-1 do
+      for i:=0 to Grammar.TerminalCount-1 do
       begin
-        Node := AddChild(tnSymbols, Terminals[i].Name);
+        Node := tvItems.Items.AddChild(tnSymbols, Grammar.Terminals[i].Name);
         Node.ImageIndex := 3;
         Node.SelectedIndex := 4;
-        Node.Data := Terminals[i];
+        Node.Data := Grammar.Terminals[i];
       end;
       tnSymbols.Expanded := TermsExp;
-      for i:=0 to SetCount-1 do
+      for i:=0 to Grammar.SetCount-1 do
       begin
-        Node := AddChild(tnSets, Sets[i].Name);
+        Node := tvItems.Items.AddChild(tnSets, Grammar.Sets[i].Name);
         Node.ImageIndex := 3;
         Node.SelectedIndex := 4;
-        Node.Data := Sets[i];
+        Node.Data := Grammar.Sets[i];
       end;
       tnSets.Expanded := SetsExp;
-      for i:= 0 to ItemCount-1 do
-        if (RuleByName(Items[i].Name)=nil) and
-           (TerminalByName(Items[i].Name)=nil) and
-           (SetByName(Items[i].Name)=nil) then
+      for i:= 0 to Grammar.ItemCount - 1 do
+        if (Grammar.RuleByName(Grammar.Items[i].Name) = nil) and
+           (Grammar.TerminalByName(Grammar.Items[i].Name) = nil) and
+           (Grammar.SetByName(Grammar.Items[i].Name) = nil) then
         begin
-          Node := AddChild(tnUndefs, Items[i].Name);
-          case Items[i].Kind of
+          Node := tvItems.Items.AddChild(tnUndefs, Grammar.Items[i].Name);
+          case Grammar.Items[i].Kind of
             gikRuleName:
             begin
               Node.ImageIndex := 0;
@@ -348,7 +349,7 @@ begin
                 Node.SelectedIndex := 3;
               end;
           end;
-          Node.Data := Items[i];
+          Node.Data := Grammar.Items[i];
         end;
       tnUndefs.Expanded := UndefsExp;
     end;
@@ -359,7 +360,7 @@ begin
       lbErrors.Items.BeginUpdate;
       try
         lbErrors.Items.Clear;
-        for i:=0 to FParser.ErrorCount-1 do
+        for i := 0 to FParser.ErrorCount-1 do
           lbErrors.Items.AddObject(FParser.Error[i], pointer(FParser.ErrorLine[i]));
       finally
         lbErrors.Items.EndUpdate;
