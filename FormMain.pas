@@ -1448,14 +1448,13 @@ procedure TfmMain.DrawParseTree;
                 s := R.Tokens[1].Reduction.Tokens[0].DataVar+' '+s;
               R := R.Tokens[0].Reduction;
             end;
-            sgRules.Cells[Level+2, sgRules.RowCount-1] := s; // RI.Tokens[0].Reduction.Tokens[0].DataVar;
-            n := sgRules.Canvas.TextWidth(s)+10;  // RI.Tokens[0].Reduction.Tokens[0].DataVar
+            sgRules.Cells[Level+2, sgRules.RowCount-1] := s;
+            n := sgRules.Canvas.TextWidth(s)+10;  
             if sgRules.ColWidths[Level+2]<n then
               sgRules.ColWidths[Level+2] := n;
           end;
           if RI.TokenCount=4 then
-            AddRule(RI.Tokens[0].Reduction, RuleName); 
-//            RuleItems(RI.Tokens[0].Reduction, Level+1);
+            AddRule(RI.Tokens[0].Reduction, RuleName);
         end;
       end;
 

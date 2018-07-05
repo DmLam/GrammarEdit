@@ -91,12 +91,21 @@ type
   TGrammarTerminal = class(TGrammarItem)
   private
     FPredefined: boolean;
+    FCharRange: boolean;
+    FFirstChar, FLastChar: Integer;
   public
     constructor Create(const AName: string; const AStartPos, AEndPos: TPoint);
     constructor CreatePredefined(const AName: string);
+    constructor CreateCharRange(const AName: string; const AFirstChar, ALastChar: integer);
 
     property Predefined: boolean
       read FPredefined;
+    property CharRange: boolean
+      read FCharRange;
+    property FirstChar: integer
+      read FFirstChar;
+    property LastChar: integer
+      read FLastChar;
   end;
 
   TGrammarSet = class(TGrammarItem)
@@ -140,6 +149,7 @@ type
     function SetByName(const Name: string): TGrammarSet;
 
     procedure Sort;
+    function IsCharRange(Item: string; var First, Last: integer): boolean;
 
     property ItemCount: integer
       read GetItemCount;
@@ -331,7 +341,7 @@ begin
   FParseString := '';
   FreeOnTerminate := false;
   FParser := TGOLDParser.Create;
-  FParser.TrimReductions := false; //true;
+  FParser.TrimReductions := false;
   FGrammar := TGrammar.Create;
   if not LoadGrammarFromResource(FParser) then
     raise Exception.Create('Can''t load grammar');
@@ -364,12 +374,15 @@ var
    lError: string;
    RecoverError: integer;
    T: TToken;
+   CharRangeFirstChar, CharRangeLastChar: integer;
 begin
   while not Terminated do
   begin
     WaitForSingleObject(FParseEvent, INFINITE);
     repeat
-      if Terminated then Break;
+      if Terminated then
+        Break;
+        
       FSourceChanged := false;
       ResetEvent(FParseEvent);
       FParsed := false;
@@ -379,9 +392,11 @@ begin
       FErrors.Clear;
       if Terminated then
         Break;
+        
       FParser.OpenTextString(FParseString);
       if Terminated then
         Break;
+        
       lDone := False;
       RecoverError := 0;
       while not (lDone or FSourceChanged or Terminated) do
@@ -419,6 +434,13 @@ begin
                   FParser.CurrentToken.Position,
                   OffsetPoint(FParser.CurrentToken.Position, Length(FParser.CurrentToken.DataVar), 0)
                 ));
+
+                if Grammar.IsCharRange(FParser.CurrentToken.DataVar, CharRangeFirstChar, CharRangeLastChar) then
+                begin
+                  if FGrammar.TerminalByName(FParser.CurrentToken.DataVar) = nil then
+                    FGrammar.AddTerminal(TGrammarTerminal.CreateCharRange(FParser.CurrentToken.DataVar, CharRangeFirstChar, CharRangeLastChar));
+
+                end;
               end
               else
               if FParser.CurrentToken.Name='<Rule Decl>' then
@@ -793,6 +815,101 @@ begin
     AddTerminal(TGrammarTerminal.CreatePredefined('{' + PREDEFINED_TERMINALS[i] + '}'));
 end;
 
+type
+  TCharSet = set of Char;
+
+function TGrammar.IsCharRange(Item: string; var First, Last: integer): boolean;
+
+  function ExtractNumber(var Start: integer; const Finish: Integer; const Chars: TCharSet): string;
+  begin
+    Result := '';
+    while (Start <= Finish) and (Item[Start] in Chars) do
+    begin
+      Result := Result + Item[Start];
+      Inc(Start);
+    end;
+  end;
+
+  procedure SkipSpace(var Start: Integer; const Finish: Integer);
+  begin
+    while (Start <= Finish) and (Item[Start] in [#9, ' ']) do
+      Inc(Start)
+  end;
+
+var
+  ItemLen, CurChar: integer;
+  s: string;
+begin
+  Result := false;
+
+  Item := Trim(Item);
+  if Item = '' then
+    Exit;
+
+  ItemLen := Length(Item);
+  CurChar := 2;
+  if Item[CurChar] = '#' then
+  begin
+    s := ExtractNumber(CurChar, ItemLen, ['0'..'9']);
+    if s <> '' then
+      First := StrToInt(s)
+    else
+      Exit;
+  end
+  else
+  if Item[CurChar] = '&' then
+  begin
+    s := ExtractNumber(CurChar, ItemLen, ['0'..'9', 'A'..'F', 'a'..'f']);
+    if s <> '' then
+      First := StrToInt('$' + s)
+    else
+      Exit;
+  end
+  else
+    Exit;
+
+  SkipSpace(CurChar, ItemLen);
+  if CurChar > ItemLen then
+  begin
+    Last := First;
+    Result := true;
+    Exit;
+  end;
+
+  if (CurChar >= ItemLen) or (Item[CurChar] <> '.') or (Item[CurChar+1] <> '.') then
+    Exit;
+
+  SkipSpace(CurChar, ItemLen);
+
+  if CurChar >= ItemLen then
+    Exit;
+
+  if Item[CurChar] = '#' then
+  begin
+    s := ExtractNumber(CurChar, ItemLen, ['0'..'9']);
+    if s <> '' then
+      Last := StrToInt(s)
+    else
+      Exit;
+  end
+  else
+  if Item[CurChar] = '&' then
+  begin
+    s := ExtractNumber(CurChar, ItemLen, ['0'..'9', 'A'..'F', 'a'..'f']);
+    if s <> '' then
+      Last := StrToInt('$' + s)
+    else
+      Exit;
+  end
+  else
+    Exit;
+
+  SkipSpace(CurChar, ItemLen);
+
+  if CurChar > ItemLen then
+    Result := true;
+end;
+
 function TGrammar.ItemAt(const XY: TPoint): TGrammarItem;
 var
   i: integer;
@@ -921,21 +1038,33 @@ end;
 
 function TGrammar.TerminalByName(Name: string): TGrammarTerminal;
 var
-  i: integer;
+  i, CharRangeFirst, CharRangeLast: integer;
 begin
+  Result := nil;
+  
   repeat
     i := Pos('  ', Name);
-    if i>0 then
+    if i > 0 then
       Delete(Name, i, 1);
-  until i=0;
+  until i = 0;
   i := FTerminals.Count-1;
-  while (i>=0) and (AnsiCompareText(Terminals[i].Name, Name)<>0) do
+  while (i >= 0) and AnsiSameText(Terminals[i].Name, Name) do
     Dec(i);
 
-  if i>=0 then
+  if i >= 0 then
     Result := Terminals[i]
   else
-    Result := nil;
+  begin
+    if IsCharRange(Name, CharRangeFirst, CharRangeLast) then
+    begin
+      for i := 0 to FTerminals.Count - 1 do
+        if Terminals[i].CharRange and (Terminals[i].FirstChar = CharRangeFirst) and (Terminals[i].LastChar = CharRangeLast) then
+        begin
+          Result := Terminals[i];
+          Break;
+        end;
+    end;
+  end;
 end;
 
 { TGrammarSet }
@@ -960,8 +1089,18 @@ end;
 constructor TGrammarTerminal.Create(const AName: string; const AStartPos, AEndPos: TPoint);
 begin
   FPredefined := false;
+  FCharRange := false;
 
   inherited Create(gikTerminal, AName, AStartPos, AEndPos);
+end;
+
+constructor TGrammarTerminal.CreateCharRange(const AName: string; const AFirstChar, ALastChar: integer);
+begin
+  Create(AName, Point(1, 1), Point(1, 1));
+
+  FCharRange := true;
+  FFirstChar := AFirstChar;
+  FLastChar := ALastChar;
 end;
 
 constructor TGrammarTerminal.CreatePredefined(const AName: string);
