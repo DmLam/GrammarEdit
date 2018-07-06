@@ -374,6 +374,7 @@ var
    lError: string;
    RecoverError: integer;
    T: TToken;
+   TokenName: string;
    CharRangeFirstChar, CharRangeLastChar: integer;
 begin
   while not Terminated do
@@ -428,17 +429,18 @@ begin
             begin
               if FParser.CurrentToken.Name='SetName' then
               begin
+                TokenName := FParser.CurrentToken.DataVar;
                 FGrammar.AddItem(TGrammarItem.Create(
                   gikSetName,
-                  FParser.CurrentToken.DataVar,
+                  TokenName,
                   FParser.CurrentToken.Position,
                   OffsetPoint(FParser.CurrentToken.Position, Length(FParser.CurrentToken.DataVar), 0)
                 ));
 
-                if Grammar.IsCharRange(FParser.CurrentToken.DataVar, CharRangeFirstChar, CharRangeLastChar) then
+                if Grammar.IsCharRange(TokenName, CharRangeFirstChar, CharRangeLastChar) then
                 begin
-                  if FGrammar.TerminalByName(FParser.CurrentToken.DataVar) = nil then
-                    FGrammar.AddTerminal(TGrammarTerminal.CreateCharRange(FParser.CurrentToken.DataVar, CharRangeFirstChar, CharRangeLastChar));
+                  if FGrammar.TerminalByName(TokenName) = nil then
+                    FGrammar.AddTerminal(TGrammarTerminal.CreateCharRange(TokenName, CharRangeFirstChar, CharRangeLastChar));
 
                 end;
               end
@@ -476,7 +478,7 @@ begin
                                   Trim(lError),
                                 pointer(FParser.CurrentLineNumber));
             end;
-            if RecoverError<RECOVER_ERROR_LEVEL then
+            if RecoverError < RECOVER_ERROR_LEVEL then
             begin
               if FParser.TokenTable.Count>0 then
               begin
@@ -815,19 +817,35 @@ begin
     AddTerminal(TGrammarTerminal.CreatePredefined('{' + PREDEFINED_TERMINALS[i] + '}'));
 end;
 
-type
-  TCharSet = set of Char;
-
 function TGrammar.IsCharRange(Item: string; var First, Last: integer): boolean;
 
-  function ExtractNumber(var Start: integer; const Finish: Integer; const Chars: TCharSet): string;
+  function ExtractNumber(var Start: integer; const Finish: Integer): string;
+  var
+    Chars: set of Char;
+    Hex: boolean;
   begin
     Result := '';
+
+    Hex := false;
+    if Item[Start] = '#' then
+      Chars := ['0' .. '9']
+    else
+    if Item[Start] = '&' then
+    begin
+      Chars := ['0'..'9', 'A'..'F', 'a'..'f'];
+      Hex := true;
+    end
+    else
+      Exit;
+
+    Inc(Start);
     while (Start <= Finish) and (Item[Start] in Chars) do
     begin
       Result := Result + Item[Start];
       Inc(Start);
     end;
+    if Hex then
+      Result := '$' + Result;
   end;
 
   procedure SkipSpace(var Start: Integer; const Finish: Integer);
@@ -843,28 +861,19 @@ begin
   Result := false;
 
   Item := Trim(Item);
-  if Item = '' then
+  ItemLen := Length(Item);
+  if (ItemLen = 0) or (Item[1] <> '{') or (Item[ItemLen] <> '}') then
     Exit;
 
-  ItemLen := Length(Item);
-  CurChar := 2;
-  if Item[CurChar] = '#' then
-  begin
-    s := ExtractNumber(CurChar, ItemLen, ['0'..'9']);
-    if s <> '' then
-      First := StrToInt(s)
-    else
-      Exit;
-  end
-  else
-  if Item[CurChar] = '&' then
-  begin
-    s := ExtractNumber(CurChar, ItemLen, ['0'..'9', 'A'..'F', 'a'..'f']);
-    if s <> '' then
-      First := StrToInt('$' + s)
-    else
-      Exit;
-  end
+  // delete '{' and '}' from the begin and the end
+  Dec(ItemLen, 2);
+  Delete(Item, 1, 1);
+  SetLength(Item, ItemLen);
+
+  CurChar := 1;
+  s := ExtractNumber(CurChar, ItemLen);
+  if s <> '' then
+    First := StrToInt(s)
   else
     Exit;
 
@@ -878,29 +887,16 @@ begin
 
   if (CurChar >= ItemLen) or (Item[CurChar] <> '.') or (Item[CurChar+1] <> '.') then
     Exit;
+  Inc(CurChar, 2); // skip '..'  
 
   SkipSpace(CurChar, ItemLen);
 
   if CurChar >= ItemLen then
     Exit;
 
-  if Item[CurChar] = '#' then
-  begin
-    s := ExtractNumber(CurChar, ItemLen, ['0'..'9']);
-    if s <> '' then
-      Last := StrToInt(s)
-    else
-      Exit;
-  end
-  else
-  if Item[CurChar] = '&' then
-  begin
-    s := ExtractNumber(CurChar, ItemLen, ['0'..'9', 'A'..'F', 'a'..'f']);
-    if s <> '' then
-      Last := StrToInt('$' + s)
-    else
-      Exit;
-  end
+  s := ExtractNumber(CurChar, ItemLen);
+  if s <> '' then
+    Last := StrToInt(s)
   else
     Exit;
 
@@ -1048,7 +1044,7 @@ begin
       Delete(Name, i, 1);
   until i = 0;
   i := FTerminals.Count-1;
-  while (i >= 0) and AnsiSameText(Terminals[i].Name, Name) do
+  while (i >= 0) and not AnsiSameText(Terminals[i].Name, Name) do
     Dec(i);
 
   if i >= 0 then

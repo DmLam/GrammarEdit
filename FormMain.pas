@@ -307,10 +307,13 @@ begin
       tnRules.Expanded := RulesExp;
       for i:=0 to Grammar.TerminalCount-1 do
       begin
-        Node := tvItems.Items.AddChild(tnSymbols, Grammar.Terminals[i].Name);
-        Node.ImageIndex := 3;
-        Node.SelectedIndex := 4;
-        Node.Data := Grammar.Terminals[i];
+        if not Grammar.Terminals[i].Predefined and not Grammar.Terminals[i].CharRange then
+        begin
+          Node := tvItems.Items.AddChild(tnSymbols, Grammar.Terminals[i].Name);
+          Node.ImageIndex := 3;
+          Node.SelectedIndex := 4;
+          Node.Data := Grammar.Terminals[i];
+        end;
       end;
       tnSymbols.Expanded := TermsExp;
       for i:=0 to Grammar.SetCount-1 do
@@ -408,15 +411,18 @@ begin
 
     DC := seMain.PixelsToRowColumn(P.X, P.Y);
     seMain.GetHighlighterAttriAtRowCol(TBufferCoord(DC), s, Attri);
-    DC.Column := TokenStart(DC, Token);
-    if (P.X>0) and (FindItemDef(Token)<>nil) then
+    if Attri <> nil then
     begin
-      DC := CharToPixels(DC);
-      seMain.Canvas.Brush.Style := bsClear;
-      seMain.Canvas.Font.Assign(seMain.Font);
-      seMain.Canvas.Font.Color := clRed;
-      seMain.Canvas.Font.Style := Attri.Style+[fsUnderline];
-      seMain.Canvas.TextOut(DC.Column, DC.Row, Token);
+      DC.Column := TokenStart(DC, Token);
+      if (P.X>0) and (FindItemDef(Token)<>nil) then
+      begin
+        DC := CharToPixels(DC);
+        seMain.Canvas.Brush.Style := bsClear;
+        seMain.Canvas.Font.Assign(seMain.Font);
+        seMain.Canvas.Font.Color := clRed;
+        seMain.Canvas.Font.Style := Attri.Style+[fsUnderline];
+        seMain.Canvas.TextOut(DC.Column, DC.Row, Token);
+      end;
     end;
   end;
 end;
