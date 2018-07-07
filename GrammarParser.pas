@@ -373,7 +373,6 @@ var
    zToken: integer;
    lError: string;
    RecoverError: integer;
-   T: TToken;
    TokenName: string;
    CharRangeFirstChar, CharRangeLastChar: integer;
 begin
