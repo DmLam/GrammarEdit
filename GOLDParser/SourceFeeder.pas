@@ -18,6 +18,7 @@ type
     function ReadFromBuffer(Size: Integer; DiscardReadText: Boolean; ReturnAllText: Boolean): String;
     function Done: Boolean;
     function ReadLine: String;
+    procedure DiscardRestOfLine;
     property Text: string read GetText write SetText;
     property Stream : TStringStream read FStream;
   end;
@@ -34,6 +35,23 @@ destructor TSourceFeeder.Destroy;
 begin
   Stream.Free;
   inherited;
+end;
+
+procedure TSourceFeeder.DiscardRestOfLine;
+var
+  EndReached: Boolean;
+  ch: string;
+begin
+  EndReached := False;
+
+  while not EndReached and not Done do
+  begin
+    ch := ReadFromBuffer(1, false, True);
+    if (ch = #10) or (ch = #13) then
+      EndReached := True
+    else
+      ch := ReadFromBuffer(1, true, True);
+  end;
 end;
 
 function TSourceFeeder.Done: Boolean;

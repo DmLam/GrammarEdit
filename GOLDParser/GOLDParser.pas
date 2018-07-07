@@ -363,7 +363,7 @@ procedure TGOLDParser.PrepareToParse;
 var Start: TToken;
 begin
    //Added 12/23/2001: The token stack is empty until needed
-   Start := TToken.Create;
+   Start := TToken.Create(Point(1, 1));
    Start.State := FInitialLALRState;
    Start.ParentSymbol := SymbolTable[(FGrammarReader as TGrammarReader).StartSymbol];
    FStack.Push(Start);
@@ -473,8 +473,7 @@ var Done: Boolean;
     comp1, comp2: string;
     Target: Integer;
 begin
-  Result := TToken.Create;
-  Result.Position := Point(CurrentLinePos, CurrentLineNumber);
+  Result := TToken.Create(Point(CurrentLinePos, CurrentLineNumber));
 
   Done := False;
   CurrentDFA := FInitialDFAState;          //The first state is almost always #1.
@@ -561,13 +560,8 @@ begin
 end;
 
 procedure TGOLDParser.DiscardRestOfLine;
-var sTemp: string;
 begin
-  //Kill the current line - basically for line comments
-  sTemp := FSource.ReadLine;
-   //01/26/2002: Fixed bug. Inc counter
-  Inc(FLineNumber);
-  FLinePos := 0;
+  FSource.DiscardRestOfLine;
 end;
 
 function TGOLDParser.ParseToken(NextToken: TToken): Integer;
@@ -620,8 +614,7 @@ begin
            NewReduction := TReduction.Create(CurrentRule);
            for n := 0 to CurrentRule.SymbolCount - 1 do
              NewReduction.InsertToken(0, FStack.Pop);
-           Head := TToken.Create;
-           Head.Position := Point(CurrentLinePos, CurrentLineNumber);// NewReduction.Tokens[0].Position;
+           Head := TToken.Create(Point(CurrentLinePos, CurrentLineNumber));
            Head.Reduction := NewReduction;
            Head.ParentSymbol := CurrentRule.RuleNonterminal;
 
@@ -647,8 +640,7 @@ begin
          //01/26/2002: Fixed bug. EOF was not being added to the expected tokens
       case ActionTables[FCurrentLALR][n].Symbol.Kind of
         SymbolTypeTerminal, SymbolTypeEnd : begin
-          Head := TToken.Create;
-          Head.Position := Point(CurrentLinePos, CurrentLineNumber);
+          Head := TToken.Create(Point(CurrentLinePos, CurrentLineNumber));
           Head.DataVar := '';
           Head.ParentSymbol := ActionTables[FCurrentLALR][n].Symbol;
           FTokens.Push(Head);

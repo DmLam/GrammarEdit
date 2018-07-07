@@ -75,6 +75,10 @@ object fmMain: TfmMain
             TabOrder = 0
             object tsEditor: TTabSheet
               Caption = 'Edit'
+              ExplicitLeft = 0
+              ExplicitTop = 0
+              ExplicitWidth = 0
+              ExplicitHeight = 0
               object seMain: TSynEdit
                 Left = 0
                 Top = 0
@@ -122,6 +126,10 @@ object fmMain: TfmMain
             object tsRules: TTabSheet
               Caption = 'Rules'
               ImageIndex = 2
+              ExplicitLeft = 0
+              ExplicitTop = 0
+              ExplicitWidth = 0
+              ExplicitHeight = 0
               object pnRules: TPanel
                 Left = 0
                 Top = 0
@@ -367,7 +375,7 @@ object fmMain: TfmMain
     Left = 96
     Top = 314
     Bitmap = {
-      494C010106000900200010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010106000900300010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -932,7 +940,7 @@ object fmMain: TfmMain
     Left = 444
     Top = 86
     Bitmap = {
-      494C010113001800200010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010113001800300010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000005000000001002000000000000050
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

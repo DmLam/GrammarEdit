@@ -1,7 +1,3 @@
-
-(****************************************************
-   change unitname to filename
-****************************************************)
 unit GrammarParser;
 
 interface
@@ -31,6 +27,7 @@ type
     FGrammar: TGrammar;
     FOnParse: TNotifyEvent;
     FParsed: boolean;
+
     function LoadGrammarFromResource(aGoldParser : TGOLDParser) : Boolean;
     procedure ReplaceReduction (aParser : TGOLDParser);
     procedure DoOnParse;
@@ -38,6 +35,7 @@ type
     function GetError(Index: integer): string;
     function GetErrorLine(Index: integer): integer;
     function GetLastReduction: TReduction;
+
   protected
     procedure OnParseProc;
     procedure Execute; override;
@@ -91,8 +89,23 @@ type
   end;
 
   TGrammarTerminal = class(TGrammarItem)
+  private
+    FPredefined: boolean;
+    FCharRange: boolean;
+    FFirstChar, FLastChar: Integer;
   public
     constructor Create(const AName: string; const AStartPos, AEndPos: TPoint);
+    constructor CreatePredefined(const AName: string);
+    constructor CreateCharRange(const AName: string; const AFirstChar, ALastChar: integer);
+
+    property Predefined: boolean
+      read FPredefined;
+    property CharRange: boolean
+      read FCharRange;
+    property FirstChar: integer
+      read FFirstChar;
+    property LastChar: integer
+      read FLastChar;
   end;
 
   TGrammarSet = class(TGrammarItem)
@@ -120,6 +133,7 @@ type
     destructor Destroy; override;
 
     procedure Clear;
+    procedure Init;
     function AddItem(const Item: TGrammarItem): integer;
     procedure DeleteItem(const Index: integer);
     function ItemAt(const XY: TPoint): TGrammarItem;
@@ -135,7 +149,7 @@ type
     function SetByName(const Name: string): TGrammarSet;
 
     procedure Sort;
-    procedure DeleteDefinedItems;
+    function IsCharRange(Item: string; var First, Last: integer): boolean;
 
     property ItemCount: integer
       read GetItemCount;
@@ -266,6 +280,45 @@ const
   Rule_Symbol_Terminal                   = 49; // <Symbol> ::= Terminal
   Rule_Symbol_Nonterminal                = 50; // <Symbol> ::= Nonterminal
 
+// pre-defined terminals
+const
+  PREDEFINED_TERMINALS: array [1..175] of string =
+    ('HT', 'LF', 'VT', 'FF', 'CR', 'Space', 'NBSP', 'LS', 'PS',
+     'Number', 'Digit', 'Letter', 'AlphaNumeric', 'Printable', 'Letter Extended', 'Printable Extended', 'Whitespace',
+     'All Latin', 'All Letters', 'All Printable', 'All Space', 'All Newline', 'All Whitespace',
+     //
+     'Basic Latin', 'Latin-1 Supplement', 'Latin Extended-A', 'Latin Extended-B', 'IPA Extensions', 'Spacing Modifier Letters',
+     'Combining Diacritical Marks', 'Greek and Coptic', 'Cyrillic', 'Cyrillic Supplement', 'Armenian', 'Hebrew', 'Arabic',
+     'Syriac', 'Arabic Supplement', 'Thaana', 'NKo', 'Samaritan', 'Devanagari', 'Bengali', 'Gurmukhi', 'Gujarati', 'Oriya',
+     'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Sinhala', 'Thai', 'Lao', 'Tibetan', 'Myanmar', 'Georgian', 'Hangul Jamo',
+     'Ethiopic', 'Ethiopic Supplement', 'Cherokee', 'Unified Canadian Aboriginal Syllabics', 'Ogham', 'Runic', 'Tagalog',
+     'Hanunoo', 'Buhid', 'Tagbanwa', 'Khmer', 'Mongolian', 'Unified Canadian Aboriginal Syllabics Extended', 'Limbu',
+     'Tai Le', 'New Tai Lue', 'Khmer Symbols', 'Buginese', 'Tai Tham', 'Balinese', 'Sundanese', 'Lepcha', 'Ol Chiki',
+     'Vedic Extensions', 'Phonetic Extensions', 'Phonetic Extensions Supplement', 'Combining Diacritical Marks Supplement',
+     'Latin Extended Additional', 'Greek Extended', 'General Punctuation', 'Superscripts and Subscripts', 'Currency Symbols',
+     'Combining Diacritical Marks for Symbols', 'Letterlike Symbols', 'Number Forms', 'Arrows', 'Mathematical Operators',
+     'Miscellaneous Technical', 'Control Pictures', 'Optical Character Recognition', 'Enclosed Alphanumerics', 'Box Drawing',
+     'Block Elements', 'Geometric Shapes', 'Miscellaneous Symbols', 'Dingbats', 'Miscellaneous Mathematical Symbols-A',
+     'Supplemental Arrows-A', 'Braille Patterns', 'Supplemental Arrows-B', 'Miscellaneous Mathematical Symbols-B',
+     'Supplemental Mathematical Operators', 'Miscellaneous Symbols and Arrows', 'Glagolitic', 'Latin Extended-C',
+     'Coptic', 'Georgian Supplement', 'Tifinagh', 'Ethiopic Extended', 'Cyrillic Extended-A', 'Supplemental Punctuation',
+     'CJK Radicals Supplement', 'Kangxi Radicals', 'Ideographic Description Characters', 'CJK Symbols and Punctuation',
+     'Hiragana', 'Katakana', 'Bopomofo', 'Hangul Compatibility Jamo', 'Kanbun', 'Bopomofo Extended', 'CJK Strokes',
+     'Katakana Phonetic Extensions', 'Enclosed CJK Letters and Months', 'CJK Compatibility', 'CJK Unified Ideographs Extension A',
+     'Yijing Hexagram Symbols', 'CJK Unified Ideographs', 'Yi Syllables', 'Yi Radicals', 'Lisu', 'Vai', 'Cyrillic Extended-B',
+     'Bamum', 'Modifier Tone Letters', 'Latin Extended-D', 'Syloti Nagri', 'Common Indic Number Forms', 'Phags-pa', 'Saurashtra',
+     'Devanagari Extended', 'Kayah Li', 'Rejang', 'Hangul Jamo Extended-A', 'Javanese', 'Cham', 'Myanmar Extended-A',
+     'Tai Viet', 'Meetei Mayek', 'Hangul Syllables', 'Hangul Jamo Extended-B', 'Private Use Area', 'CJK Compatibility Ideographs',
+     'Alphabetic Presentation Forms', 'Arabic Presentation Forms-A', 'Variation Selectors', 'Vertical Forms', 'Combining Half Marks',
+     'CJK Compatibility Forms', 'Small Form Variants', 'Arabic Presentation Forms-B', 'Halfwidth and Fullwidth Forms',
+     //
+     'All Valid', 'ANSI Mapped', 'ANSI Printable', 'Control Codes', 'Euro Sign', 'Formatting');
+
+const
+  COMMENT_LINE = 'Comment Line';
+  COMMENT_START = 'Comment Start';
+  COMMENT_END = 'Comment End';
+
 function OffsetPoint(const P: TPoint; const X, Y: integer): TPoint;
 begin
   Result.X := P.X+X;
@@ -288,7 +341,7 @@ begin
   FParseString := '';
   FreeOnTerminate := false;
   FParser := TGOLDParser.Create;
-  FParser.TrimReductions := false; //true;
+  FParser.TrimReductions := false;
   FGrammar := TGrammar.Create;
   if not LoadGrammarFromResource(FParser) then
     raise Exception.Create('Can''t load grammar');
@@ -320,22 +373,30 @@ var
    zToken: integer;
    lError: string;
    RecoverError: integer;
-   T: TToken;
+   TokenName: string;
+   CharRangeFirstChar, CharRangeLastChar: integer;
 begin
   while not Terminated do
   begin
     WaitForSingleObject(FParseEvent, INFINITE);
     repeat
-      if Terminated then Break;
+      if Terminated then
+        Break;
+        
       FSourceChanged := false;
       ResetEvent(FParseEvent);
       FParsed := false;
       FParsedOk := true;
       FGrammar.Clear;
+      FGrammar.Init;
       FErrors.Clear;
-      if Terminated then Break;
+      if Terminated then
+        Break;
+        
       FParser.OpenTextString(FParseString);
-      if Terminated then Break;
+      if Terminated then
+        Break;
+        
       lDone := False;
       RecoverError := 0;
       while not (lDone or FSourceChanged or Terminated) do
@@ -367,12 +428,20 @@ begin
             begin
               if FParser.CurrentToken.Name='SetName' then
               begin
+                TokenName := FParser.CurrentToken.DataVar;
                 FGrammar.AddItem(TGrammarItem.Create(
                   gikSetName,
-                  FParser.CurrentToken.DataVar,
+                  TokenName,
                   FParser.CurrentToken.Position,
                   OffsetPoint(FParser.CurrentToken.Position, Length(FParser.CurrentToken.DataVar), 0)
                 ));
+
+                if Grammar.IsCharRange(TokenName, CharRangeFirstChar, CharRangeLastChar) then
+                begin
+                  if FGrammar.TerminalByName(TokenName) = nil then
+                    FGrammar.AddTerminal(TGrammarTerminal.CreateCharRange(TokenName, CharRangeFirstChar, CharRangeLastChar));
+
+                end;
               end
               else
               if FParser.CurrentToken.Name='<Rule Decl>' then
@@ -403,22 +472,15 @@ begin
               lError := '';
               for zToken := 0 to FParser.TokenTable.Count - 1 do
                 lError := lError + ' ' + FParser.TokenTable[zToken].Name;
-              FErrors.AddObject('Line ' + IntToStr(FParser.CurrentLineNumber) +
-                                  ': Syntax Error: Expecting the following tokens: ' +
-                                  Trim(lError),
+              FErrors.AddObject(Format('[%d, %d] : Syntax Error: Expecting the following tokens: %s', [FParser.CurrentLineNumber, FParser.CurrentLinePos,  Trim(lError)]),
                                 pointer(FParser.CurrentLineNumber));
             end;
-            if RecoverError<RECOVER_ERROR_LEVEL then
+
+            if RecoverError < RECOVER_ERROR_LEVEL then
             begin
-              if FParser.TokenTable.Count>0 then
+              if FParser.TokenTable.Count > 0 then
               begin
-                T := TToken.Create;
-                T.ParentSymbol := FParser.TokenTable[0].ParentSymbol;
-                T.Position := FParser.TokenTable[0].Position;
-                T.DataVar := FParser.TokenTable[0].DataVar;
-                T.Reduction := FParser.TokenTable[0].Reduction;
-                T.State := FParser.TokenTable[0].State;
-                FParser.PushInputToken(T);
+                FParser.PushInputToken(FParser.TokenTable[0]);
                 Inc(RecoverError);
               end
               else
@@ -460,8 +522,6 @@ begin
 
     if not Terminated and FSourceChanged then Continue;
 
-//    FGrammar.DeleteDefinedItems;
-
     Grammar.Sort;
 
     if not Terminated and FSourceChanged then Continue;
@@ -499,7 +559,6 @@ var
   lMemStream : TMemoryStream;
   lResource : Pointer;
   lHandle   : Cardinal;
-
 begin
   Result := TRUE;
   try
@@ -679,36 +738,6 @@ begin
   FSets.OwnsObjects := true;
 end;
 
-procedure TGrammar.DeleteDefinedItems;
-
-  procedure DeleteFrom(FList: TObjectList);
-  var
-    i, j: integer;
-  begin
-    for j:=0 to FList.Count-1 do
-      for i:=FItems.Count-1 downto 0 do
-      begin
-        if AnsiCompareText((FList[j] as TGrammarItem).Name, Items[i].Name)=0 then
-          FItems.Delete(i);
-      end;
-  end;
-
-var
-  i: integer;
-
-begin
-  DeleteFrom(FRules);
-  DeleteFrom(FTerminals);
-  DeleteFrom(FSets);
-
-  // Deleting predefined terminals
-  for i:=FTerminals.Count-1 downto 0 do
-    if ((CompareText(Terminals[i].Name, 'Comment Line')=0) or
-        (CompareText(Terminals[i].Name, 'Comment Start')=0) or
-        (CompareText(Terminals[i].Name, 'Comment End')=0)) then
-      FTerminals.Delete(i);
-end;
-
 procedure TGrammar.DeleteItem(const Index: integer);
 begin
   FItems.Delete(Index);
@@ -751,26 +780,6 @@ begin
   Result := FRules.Count;
 end;
 
-{ TGrammarItem }
-
-constructor TGrammarItem.Create(const AKind: TGrammarItemKind;
-  const AName: string; const AStartPos, AEndPos: TPoint);
-begin
-  FKind := AKind;
-  FName := AName;
-  FStartPos := AStartPos;
-  FEndPos := AEndPos;
-end;
-
-{ TGrammarRule }
-
-constructor TGrammarRule.Create(const AName: string; const AStartPos,
-  AEndPos: TPoint);
-begin
-  inherited Create(gikRule, AName, AStartPos, AEndPos);
-
-end;
-
 function TGrammar.GetSet(Index: integer): TGrammarSet;
 begin
   Result := FSets[Index] as TGrammarSet;
@@ -789,6 +798,104 @@ end;
 function TGrammar.GetTerminalCount: integer;
 begin
   Result := FTerminals.Count
+end;
+
+procedure TGrammar.Init;
+var
+  i: integer;
+begin
+  // add predefined terminals
+  for i := Low(PREDEFINED_TERMINALS) to High(PREDEFINED_TERMINALS) do
+    AddTerminal(TGrammarTerminal.CreatePredefined('{' + PREDEFINED_TERMINALS[i] + '}'));
+end;
+
+function TGrammar.IsCharRange(Item: string; var First, Last: integer): boolean;
+
+  function ExtractNumber(var Start: integer; const Finish: Integer): string;
+  var
+    Chars: set of Char;
+    Hex: boolean;
+  begin
+    Result := '';
+
+    Hex := false;
+    if Item[Start] = '#' then
+      Chars := ['0' .. '9']
+    else
+    if Item[Start] = '&' then
+    begin
+      Chars := ['0'..'9', 'A'..'F', 'a'..'f'];
+      Hex := true;
+    end
+    else
+      Exit;
+
+    Inc(Start);
+    while (Start <= Finish) and (Item[Start] in Chars) do
+    begin
+      Result := Result + Item[Start];
+      Inc(Start);
+    end;
+    if Hex then
+      Result := '$' + Result;
+  end;
+
+  procedure SkipSpace(var Start: Integer; const Finish: Integer);
+  begin
+    while (Start <= Finish) and (Item[Start] in [#9, ' ']) do
+      Inc(Start)
+  end;
+
+var
+  ItemLen, CurChar: integer;
+  s: string;
+begin
+  Result := false;
+
+  Item := Trim(Item);
+  ItemLen := Length(Item);
+  if (ItemLen = 0) or (Item[1] <> '{') or (Item[ItemLen] <> '}') then
+    Exit;
+
+  // delete '{' and '}' from the begin and the end
+  Dec(ItemLen, 2);
+  Delete(Item, 1, 1);
+  SetLength(Item, ItemLen);
+
+  CurChar := 1;
+  s := ExtractNumber(CurChar, ItemLen);
+  if s <> '' then
+    First := StrToInt(s)
+  else
+    Exit;
+
+  SkipSpace(CurChar, ItemLen);
+  if CurChar > ItemLen then
+  begin
+    Last := First;
+    Result := true;
+    Exit;
+  end;
+
+  if (CurChar >= ItemLen) or (Item[CurChar] <> '.') or (Item[CurChar+1] <> '.') then
+    Exit;
+  Inc(CurChar, 2); // skip '..'  
+
+  SkipSpace(CurChar, ItemLen);
+
+  if CurChar >= ItemLen then
+    Exit;
+
+  s := ExtractNumber(CurChar, ItemLen);
+  if s <> '' then
+    Last := StrToInt(s)
+  else
+    Exit;
+
+  SkipSpace(CurChar, ItemLen);
+
+  if CurChar > ItemLen then
+    Result := true;
 end;
 
 function TGrammar.ItemAt(const XY: TPoint): TGrammarItem;
@@ -844,14 +951,6 @@ begin
     Result := Rules[i]
   else
     Result := nil;
-end;
-
-{ TGrammarTerminal }
-
-constructor TGrammarTerminal.Create(const AName: string; const AStartPos,
-  AEndPos: TPoint);
-begin
-  inherited Create(gikTerminal, AName, AStartPos, AEndPos);
 end;
 
 function TGrammar.SetAt(const XY: TPoint): TGrammarSet;
@@ -927,29 +1026,83 @@ end;
 
 function TGrammar.TerminalByName(Name: string): TGrammarTerminal;
 var
-  i: integer;
+  i, CharRangeFirst, CharRangeLast: integer;
 begin
+  Result := nil;
+  
   repeat
     i := Pos('  ', Name);
-    if i>0 then
+    if i > 0 then
       Delete(Name, i, 1);
-  until i=0;
+  until i = 0;
   i := FTerminals.Count-1;
-  while (i>=0) and (AnsiCompareText(Terminals[i].Name, Name)<>0) do
+  while (i >= 0) and not AnsiSameText(Terminals[i].Name, Name) do
     Dec(i);
 
-  if i>=0 then
+  if i >= 0 then
     Result := Terminals[i]
   else
-    Result := nil;
+  begin
+    if IsCharRange(Name, CharRangeFirst, CharRangeLast) then
+    begin
+      for i := 0 to FTerminals.Count - 1 do
+        if Terminals[i].CharRange and (Terminals[i].FirstChar = CharRangeFirst) and (Terminals[i].LastChar = CharRangeLast) then
+        begin
+          Result := Terminals[i];
+          Break;
+        end;
+    end;
+  end;
 end;
 
 { TGrammarSet }
 
-constructor TGrammarSet.Create(const AName: string; const AStartPos,
-  AEndPos: TPoint);
+constructor TGrammarSet.Create(const AName: string; const AStartPos, AEndPos: TPoint);
 begin
   inherited Create(gikSet, AName, AStartPos, AEndPos);
+end;
+
+{ TGrammarItem }
+
+constructor TGrammarItem.Create(const AKind: TGrammarItemKind;  const AName: string; const AStartPos, AEndPos: TPoint);
+begin
+  FKind := AKind;
+  FName := AName;
+  FStartPos := AStartPos;
+  FEndPos := AEndPos;
+end;
+
+{ TGrammarTerminal }
+
+constructor TGrammarTerminal.Create(const AName: string; const AStartPos, AEndPos: TPoint);
+begin
+  FPredefined := false;
+  FCharRange := false;
+
+  inherited Create(gikTerminal, AName, AStartPos, AEndPos);
+end;
+
+constructor TGrammarTerminal.CreateCharRange(const AName: string; const AFirstChar, ALastChar: integer);
+begin
+  Create(AName, Point(1, 1), Point(1, 1));
+
+  FCharRange := true;
+  FFirstChar := AFirstChar;
+  FLastChar := ALastChar;
+end;
+
+constructor TGrammarTerminal.CreatePredefined(const AName: string);
+begin
+  Create(AName, Point(1, 1), Point(1, 1));
+
+  FPredefined := true;
+end;
+
+{ TGrammarRule }
+
+constructor TGrammarRule.Create(const AName: string; const AStartPos, AEndPos: TPoint);
+begin
+  inherited Create(gikRule, AName, AStartPos, AEndPos);
 end;
 
 end.

@@ -283,50 +283,54 @@ var
   i: integer;
   Node: TTreeNode;
   RulesExp, TermsExp, SetsExp, UndefsExp: boolean;
+  Grammar: TGrammar;
 begin
   RulesExp := tnRules.Expanded;
   TermsExp := tnSymbols.Expanded;
   SetsExp := tnSets.Expanded;
   UndefsExp := tnUndefs.Expanded;
   tvItems.Items.BeginUpdate;
+  Grammar := FParser.Grammar;
   try
     tnRules.DeleteChildren;
     tnSymbols.DeleteChildren;
     tnSets.DeleteChildren;
     tnUndefs.DeleteChildren;
-    with FParser.Grammar, tvItems.Items do
     begin
-      for i:=0 to RuleCount-1 do
+      for i := 0 to Grammar.RuleCount - 1 do
       begin
-        Node := AddChild(tnRules, Rules[i].Name);
+        Node := tvItems.Items.AddChild(tnRules, FParser.Grammar.Rules[i].Name);
         Node.ImageIndex := 3;
         Node.SelectedIndex := 4;
-        Node.Data := Rules[i];
+        Node.Data := Grammar.Rules[i];
       end;
       tnRules.Expanded := RulesExp;
-      for i:=0 to TerminalCount-1 do
+      for i:=0 to Grammar.TerminalCount-1 do
       begin
-        Node := AddChild(tnSymbols, Terminals[i].Name);
-        Node.ImageIndex := 3;
-        Node.SelectedIndex := 4;
-        Node.Data := Terminals[i];
+        if not Grammar.Terminals[i].Predefined and not Grammar.Terminals[i].CharRange then
+        begin
+          Node := tvItems.Items.AddChild(tnSymbols, Grammar.Terminals[i].Name);
+          Node.ImageIndex := 3;
+          Node.SelectedIndex := 4;
+          Node.Data := Grammar.Terminals[i];
+        end;
       end;
       tnSymbols.Expanded := TermsExp;
-      for i:=0 to SetCount-1 do
+      for i:=0 to Grammar.SetCount-1 do
       begin
-        Node := AddChild(tnSets, Sets[i].Name);
+        Node := tvItems.Items.AddChild(tnSets, Grammar.Sets[i].Name);
         Node.ImageIndex := 3;
         Node.SelectedIndex := 4;
-        Node.Data := Sets[i];
+        Node.Data := Grammar.Sets[i];
       end;
       tnSets.Expanded := SetsExp;
-      for i:= 0 to ItemCount-1 do
-        if (RuleByName(Items[i].Name)=nil) and
-           (TerminalByName(Items[i].Name)=nil) and
-           (SetByName(Items[i].Name)=nil) then
+      for i:= 0 to Grammar.ItemCount - 1 do
+        if (Grammar.RuleByName(Grammar.Items[i].Name) = nil) and
+           (Grammar.TerminalByName(Grammar.Items[i].Name) = nil) and
+           (Grammar.SetByName(Grammar.Items[i].Name) = nil) then
         begin
-          Node := AddChild(tnUndefs, Items[i].Name);
-          case Items[i].Kind of
+          Node := tvItems.Items.AddChild(tnUndefs, Grammar.Items[i].Name);
+          case Grammar.Items[i].Kind of
             gikRuleName:
             begin
               Node.ImageIndex := 0;
@@ -348,7 +352,7 @@ begin
                 Node.SelectedIndex := 3;
               end;
           end;
-          Node.Data := Items[i];
+          Node.Data := Grammar.Items[i];
         end;
       tnUndefs.Expanded := UndefsExp;
     end;
@@ -359,7 +363,7 @@ begin
       lbErrors.Items.BeginUpdate;
       try
         lbErrors.Items.Clear;
-        for i:=0 to FParser.ErrorCount-1 do
+        for i := 0 to FParser.ErrorCount-1 do
           lbErrors.Items.AddObject(FParser.Error[i], pointer(FParser.ErrorLine[i]));
       finally
         lbErrors.Items.EndUpdate;
@@ -407,15 +411,18 @@ begin
 
     DC := seMain.PixelsToRowColumn(P.X, P.Y);
     seMain.GetHighlighterAttriAtRowCol(TBufferCoord(DC), s, Attri);
-    DC.Column := TokenStart(DC, Token);
-    if (P.X>0) and (FindItemDef(Token)<>nil) then
+    if Attri <> nil then
     begin
-      DC := CharToPixels(DC);
-      seMain.Canvas.Brush.Style := bsClear;
-      seMain.Canvas.Font.Assign(seMain.Font);
-      seMain.Canvas.Font.Color := clRed;
-      seMain.Canvas.Font.Style := Attri.Style+[fsUnderline];
-      seMain.Canvas.TextOut(DC.Column, DC.Row, Token);
+      DC.Column := TokenStart(DC, Token);
+      if (P.X>0) and (FindItemDef(Token)<>nil) then
+      begin
+        DC := CharToPixels(DC);
+        seMain.Canvas.Brush.Style := bsClear;
+        seMain.Canvas.Font.Assign(seMain.Font);
+        seMain.Canvas.Font.Color := clRed;
+        seMain.Canvas.Font.Style := Attri.Style+[fsUnderline];
+        seMain.Canvas.TextOut(DC.Column, DC.Row, Token);
+      end;
     end;
   end;
 end;
@@ -1447,14 +1454,13 @@ procedure TfmMain.DrawParseTree;
                 s := R.Tokens[1].Reduction.Tokens[0].DataVar+' '+s;
               R := R.Tokens[0].Reduction;
             end;
-            sgRules.Cells[Level+2, sgRules.RowCount-1] := s; // RI.Tokens[0].Reduction.Tokens[0].DataVar;
-            n := sgRules.Canvas.TextWidth(s)+10;  // RI.Tokens[0].Reduction.Tokens[0].DataVar
+            sgRules.Cells[Level+2, sgRules.RowCount-1] := s;
+            n := sgRules.Canvas.TextWidth(s)+10;  
             if sgRules.ColWidths[Level+2]<n then
               sgRules.ColWidths[Level+2] := n;
           end;
           if RI.TokenCount=4 then
-            AddRule(RI.Tokens[0].Reduction, RuleName); 
-//            RuleItems(RI.Tokens[0].Reduction, Level+1);
+            AddRule(RI.Tokens[0].Reduction, RuleName);
         end;
       end;
 
@@ -1513,16 +1519,35 @@ end;
 
 procedure TfmMain.lbErrorsDblClick(Sender: TObject);
 var
-  n: integer;
+  n, L, P: integer;
+  Msg: string;
 begin
   n := lbErrors.ItemIndex;
-  if n<>-1 then
+  if n <> -1 then
   begin
-    n := integer(lbErrors.Items.Objects[n]);
-    if n>=0 then
+    Msg := lbErrors.Items[n];
+    if Msg[1] = '[' then
     begin
-      seMain.CaretXY := BufferCoord(0, n);
-      seMain.SetFocus;
+      n := Pos(']', Msg);
+      if n > 0 then
+      begin
+        Msg := Copy(Msg, 2, n - 2);
+        n := Pos(',', Msg);
+        if n > 0 then
+        begin
+          L := StrToIntDef(Trim(Copy(Msg, 1, n - 1)), 1);
+          P := StrToIntDef(Trim(Copy(Msg, n + 1, MaxInt)), 1);
+        end
+        else
+        begin
+          L := StrToIntDef(Trim(Msg), 1);
+          P := 1;
+        end;
+
+        seMain.CaretXY := BufferCoord(P, L);
+        seMain.SetFocus;
+        seMain.EnsureCursorPosVisibleEx(true);
+      end;
     end;
   end;
 end;

@@ -68,6 +68,7 @@ type
     FReduction: TReduction;
     FParentSymbol: TSymbol;
     FOwnerStack : TTokenStack;
+    FPosition: TPoint;
     function GetKind: Integer;
     function GetName: string;
     procedure SetParentSymbol(Value: TSymbol);
@@ -77,9 +78,8 @@ type
     function GetText: string;
     procedure SetState(Value: Integer);
   public
-    Position: TPoint;             // Lam
 
-    constructor Create;
+    constructor Create(const Position: TPoint);
     destructor Destroy; override;
     property Kind : Integer read GetKind;
       // Returns an enumerated data type that denotes the symbol class of the token.
@@ -99,6 +99,7 @@ type
       // special terminals are delimited by parenthesis and terminals
       // are delimited by single quotes (if special characters are present).
     property State : Integer read FState write SetState;
+    property Position: TPoint read FPosition;             // Lam
   end;
 
   TTokenStack = class
@@ -123,11 +124,12 @@ implementation
 
 { TToken }
 
-constructor TToken.Create;
+constructor TToken.Create(const Position: TPoint);
 begin
   inherited Create;
+
   FDataVar := '0';
-  Position := Point(0, 0);
+  FPosition := Position;
 end;
 
 destructor TToken.Destroy;

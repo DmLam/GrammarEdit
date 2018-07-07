@@ -568,11 +568,6 @@ begin
   Result := fTokenID = tkNull;
 end;
 
-//function TGrammarSyn.GetKeyWords(TokenKind: Integer): UnicodeString;
-//begin
-//  Result := 'Comment Line,Comment Start,Comment End';
-//end;
-
 function TGrammarSyn.GetToken: UnicodeString;
 var
   Len: LongInt;
