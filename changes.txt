@@ -19,3 +19,9 @@ Version 1.2
 
 + Rebuilt with latest (2.6.0 at the moment) version of official GOLD Parser 
   grammatic. Lets use symbols '-' and '.' in terminals and non-terminals
+
+Version 1.3
+
++ Build with the latest SynEdit version
+- Predefined terminal are not shown as undefined
+- Fixed bug in parser engine with single-line comments
