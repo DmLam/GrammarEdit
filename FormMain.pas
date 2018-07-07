@@ -1519,16 +1519,35 @@ end;
 
 procedure TfmMain.lbErrorsDblClick(Sender: TObject);
 var
-  n: integer;
+  n, L, P: integer;
+  Msg: string;
 begin
   n := lbErrors.ItemIndex;
-  if n<>-1 then
+  if n <> -1 then
   begin
-    n := integer(lbErrors.Items.Objects[n]);
-    if n>=0 then
+    Msg := lbErrors.Items[n];
+    if Msg[1] = '[' then
     begin
-      seMain.CaretXY := BufferCoord(0, n);
-      seMain.SetFocus;
+      n := Pos(']', Msg);
+      if n > 0 then
+      begin
+        Msg := Copy(Msg, 2, n - 2);
+        n := Pos(',', Msg);
+        if n > 0 then
+        begin
+          L := StrToIntDef(Trim(Copy(Msg, 1, n - 1)), 1);
+          P := StrToIntDef(Trim(Copy(Msg, n + 1, MaxInt)), 1);
+        end
+        else
+        begin
+          L := StrToIntDef(Trim(Msg), 1);
+          P := 1;
+        end;
+
+        seMain.CaretXY := BufferCoord(P, L);
+        seMain.SetFocus;
+        seMain.EnsureCursorPosVisibleEx(true);
+      end;
     end;
   end;
 end;

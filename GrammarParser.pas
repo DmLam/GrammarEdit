@@ -473,22 +473,15 @@ begin
               lError := '';
               for zToken := 0 to FParser.TokenTable.Count - 1 do
                 lError := lError + ' ' + FParser.TokenTable[zToken].Name;
-              FErrors.AddObject('Line ' + IntToStr(FParser.CurrentLineNumber) +
-                                  ': Syntax Error: Expecting the following tokens: ' +
-                                  Trim(lError),
+              FErrors.AddObject(Format('[%d, %d] : Syntax Error: Expecting the following tokens: %s', [FParser.CurrentLineNumber, FParser.CurrentLinePos,  Trim(lError)]),
                                 pointer(FParser.CurrentLineNumber));
             end;
+
             if RecoverError < RECOVER_ERROR_LEVEL then
             begin
-              if FParser.TokenTable.Count>0 then
+              if FParser.TokenTable.Count > 0 then
               begin
-                T := TToken.Create;
-                T.ParentSymbol := FParser.TokenTable[0].ParentSymbol;
-                T.Position := FParser.TokenTable[0].Position;
-                T.DataVar := FParser.TokenTable[0].DataVar;
-                T.Reduction := FParser.TokenTable[0].Reduction;
-                T.State := FParser.TokenTable[0].State;
-                FParser.PushInputToken(T);
+                FParser.PushInputToken(FParser.TokenTable[0]);
                 Inc(RecoverError);
               end
               else
