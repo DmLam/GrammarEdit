@@ -6,8 +6,6 @@ grammar definition files. It highlights grammar syntax elements, parse file
 'on the fly' and shows defined grammar elements, providing easy navigation on 
 them.
 
-Author: Dmitry Lamdan (lamdan@mail.ru)
-
 How to use:
 ============
 
