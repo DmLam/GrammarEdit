@@ -32,3 +32,5 @@ Building
 
 The project is built with CodeGear Delphi 2007
 Uses SynEdit components from https://github.com/SynEdit/SynEdit
+
+P.S. Very old project, but somebody asked me publish sources
